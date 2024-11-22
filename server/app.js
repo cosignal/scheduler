@@ -1,10 +1,15 @@
 // deps
+const cors = require('cors')
+require('dotenv').config()
 const express = require('express')
 const app = express()
 const bodyParser = require('body-parser')
-const port = 3001
+const port = process.env.PORT
 const db = require('./queries')
 
+app.use(cors({
+    origin: process.env.FRONTEND_URL
+}))
 app.use(bodyParser.json())
 app.use(
     bodyParser.urlencoded({

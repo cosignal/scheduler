@@ -6,11 +6,13 @@ function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
+  const apiURL = process.env.REACT_APP_API_URL
+  console.log(apiURL)
   
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await fetch('/users');
+        const response = await fetch(`${apiURL}/users`);
         if (!response.ok) {
           throw new Error('Failed to fetch the data');
         }
