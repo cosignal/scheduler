@@ -1,5 +1,5 @@
 {
-  "name": "pern",
+  "name": "server",
   "version": "1.0.0",
   "description": "A web application using Express js",
   "main": "app.js",
@@ -9,6 +9,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "express": "^4.21.1"
+    "express": "^4.21.1",
+    "pg": "^8.x.x"
   }
 }
