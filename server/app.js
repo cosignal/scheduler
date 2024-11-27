@@ -8,8 +8,16 @@ const port = process.env.PORT
 const db = require('./queries')
 
 app.use(cors({
-    origin: process.env.FRONTEND_URL
+    origin: process.env.FRONTEND_URL,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    credentials: true,
+    allowedHeaders: ['Content-Type', 'Authorization']
 }))
+app.use(function(req, res, next) {
+    res.header("Access-Control-Allow-Origin", process.env.FRONTEND_URL);
+    res.header("Access-Control-Allow-Credentials", "true");
+    next();
+  })
 app.use(bodyParser.json())
 app.use(
     bodyParser.urlencoded({
@@ -27,7 +35,9 @@ app.post('/users', db.createUser)
 app.put('/users/:id', db.updateUser)
 app.delete('/users/:id', db.deleteUser)
 app.get('/events', db.getEvents)
-app.get('/events/:id', db.getEventByUserId)
+// TODO:
+/* app.get('/event/:id', db.getEventByID)
+app.get('/events/:id', db.getEventsByUserId) */
 app.post('/events', db.createEvent)
 app.put('/events/:id', db.updateEvent)
 app.delete('/events/:id', db.deleteEvent)

@@ -20,16 +20,20 @@ const getUserById = (request, response) => {
   })
 }
 
-const createUser = (request, response) => {
+const createUser = async (request, response) => {
+  try {
     const { name, email } = request.body
-  
-    db.query('INSERT INTO users (name, email) VALUES ($1, $2) RETURNING *', [name, email], (error, results) => {
-      if (error) {
-        throw error
-      }
-      response.status(201).send(`User added with ID: ${results.rows[0].id}`)
-    })
+    
+    const results = await db.query(
+      'INSERT INTO users (name, email) VALUES ($1, $2) RETURNING *',
+      [name, email]
+    )
+    response.status(201).json({ id: results.rows[0].id })
+  } catch (error) {
+    console.error("DB Query error: ", error)
+    response.status(500).json({ error: 'Internal server error' })
   }
+}
 
 const updateUser = (request, response) => {
   const id = parseInt(request.params.id)
