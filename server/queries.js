@@ -82,10 +82,13 @@ const getEventByUserId = (request, response) => {
   })
 }
 
-const createEvent = (request, response) => {
-    const { user_id, title, description, start_time, end_time, all_day } = request.body
+const createEvent = async (request, response) => {
+    const { user_id, title, description, start_time, end_time, date } = request.body
   
-    db.query('INSERT INTO Events (name, email) VALUES ($1, $2) RETURNING *', [user_id, title, description, start_time, end_time, all_day], (error, results) => {
+    //Should "Events" be lowercase?
+    await db.query('INSERT INTO events (user_id, title, description, start_time, end_time, date) VALUES ($1, $2, $3, TO_TIMESTAMP($4,\'HH24:MI:SS\')::time without time zone, TO_TIMESTAMP($5,\'HH24:MI:SS\')::time without time zone, $6) RETURNING *',
+      [user_id, title, description, start_time, end_time, date],
+      (error, results) => {
       if (error) {
         throw error
       }
