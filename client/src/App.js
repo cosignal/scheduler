@@ -10,45 +10,64 @@ const sleep = ms => new Promise(resolve => setTimeout(resolve, ms))
 const Calendar = () => {
   const location = useLocation()
   const user_id = location.state?.user_id
+  const [events, setEvents] = useState([])
+  const [submissions, setSubmissions] = useState(0)
   const [title, setTitle] = useState('')
   const [description, setDesc] = useState('')
   const [start_time, setStartTime] = useState('')
   const [end_time, setEndTime] = useState('')
   const [date, setDate] = useState('')
-  const { register, handleSubmit, formState: { errors }, formState } = useForm()
+  const { handleSubmit, formState: { errors } } = useForm()
+  const [error, setError] = useState(null)
   const apiURL = process.env.REACT_APP_API_URL
 
-  const onSubmit = async e => {
-    await sleep(1000) // no ?
+const fetchData = async () => {
+  try {
+    const response = await fetch(`${apiURL}/events/${user_id}`,
+      {mode: 'cors'}
+    )
+    if (!response.ok) {
+      throw new Error('Failed to fetch user events data')
+    }
+    const result = await response.json()
+    setEvents(result)
+  } catch (error) {
+    setError(error.message)
+  }
+}
+
+  const onSubmit = async (formData) => {
     try {
       const response = await fetch(`${apiURL}/events`, {
         method: 'POST',
         mode: 'cors',
         headers: new Headers({
           'Accept': 'application/json',
-          'Content-Type': 'application/json',
-          'Access-Control-Request-Method': 'POST',
-          'Access-Control-Request-Headers': 'Content-Type'
+          'Content-Type': 'application/json'
         }),
         credentials: 'include',
         body: JSON.stringify({ user_id, title, description, start_time, end_time, date })
       })
       const result = await response.json()
-      console.log(result)
-      // close popup?
-      
+      console.log("POST user event: ", result)
+      setSubmissions(prevCount => prevCount + 1)
+      fetchData()
     } catch (error) {
       console.error('POST request Error:', error)
     }
   }
   
+  useEffect(() => {
+    fetchData()
+  }, [submissions])
   
-  console.log('User ID: ', user_id)
   return (
     <div className="calendar">
     <h1>Your Calendar</h1>
     <div>
     <p>Calendar View Goes Here</p>
+    </div>
+    <div className="addEvent">
     <Popup trigger=
     {<button> Click to add event </button>}
     position="right center">
@@ -63,7 +82,6 @@ const Calendar = () => {
     onChange={(e) => setTitle(e.target.value)} 
     required 
     /><br/>
-    
     
     <label>Description</label>
     <input 
@@ -103,12 +121,23 @@ const Calendar = () => {
     <button type='submit'>Add event</button>
     </form>
     
-    
     </div>
     </Popup>
-    </div>    
+    </div>
     
-    <p>userID: {user_id}</p>
+    <div>
+    <h2>Events</h2>
+    <ul>
+    {events.map(event => (
+      <li key={event.id}>
+      <h3>{event.title}</h3>
+      <p>Date: {event.date.slice(0, 10)}</p>
+      <p>Time: {event.start_time} - {event.end_time}</p>
+      <p>{event.description}</p>
+      </li>
+    ))}
+    </ul>
+    </div>
     
     </div>
   )
@@ -123,11 +152,11 @@ const UserLogin = () => {
   const location = useLocation()
   const users = location.state?.users
   let newUser = true
-  const { register, handleSubmit, formState: { errors }, formState } = useForm()
+  const [formKey, setFormKey] = useState(0)
+  const { handleSubmit, reset, setError, formState: { errors } } = useForm()
   
-  const onSubmit = async e => {
+  const onSubmit = async (formData) => {
     await sleep(1000)
-    //event.preventDefault() ?
     // check if entered user exists
     for (const user of users) {
       if ((user.name === name) && (user.email === email)) {
@@ -136,8 +165,13 @@ const UserLogin = () => {
         setID(user.id)
         navigate('/calendar', { state: { user_id } })
       } else if ((user.name === name) || (user.email === email)) {
-        // incorrect credentials
-        // TODO: how to clear fields / 'cancel' this onSubmit?
+        // wrong username OR email
+        newUser = false
+        setFormKey(prevKey => prevKey + 1)
+        setError('root.serverError', {
+          type: 'manual',
+          message: 'Incorrect username or email'
+        })
       }
     }
     if (newUser) {
@@ -148,17 +182,14 @@ const UserLogin = () => {
           mode: 'cors',
           headers: new Headers({
             'Accept': 'application/json',
-            'Content-Type': 'application/json',
-            'Access-Control-Request-Method': 'POST',
-            'Access-Control-Request-Headers': 'Content-Type'
+            'Content-Type': 'application/json'
           }),
           credentials: 'include',
           body: JSON.stringify({ name, email })
         })
         const result = await response.json()
         setID(result.id)
-        navigate('/calendar', { state: { user_id } })
-        
+        navigate('/calendar', { state: { user_id } })      
       } catch (error) {
         console.error('Error', error)
       }
@@ -168,69 +199,65 @@ const UserLogin = () => {
   useEffect(() => {
     if (user_id) {
       navigate('/calendar', { state: { user_id } })
-    }       
+    }
   }, [user_id])
   
   return (
     <div className="login">
-    <h1>User Login</h1>
-    <form onSubmit={handleSubmit(onSubmit)}>
-    <label htmlFor="name">Name: </label>
-    <input 
-    type="text" 
-    id="name" 
-    value={name} 
-    onChange={(e) => setName(e.target.value)} 
-    required 
-    /><br/>
-    
-    <label htmlFor="email">Email: </label>
-    <input 
-    type="email" 
-    id="email" 
-    value={email} 
-    onChange={(e) => setEmail(e.target.value)} 
-    required 
-    /><br/>
-    
-    <button type="submit">Login</button>
-    </form>
+      <h1>User Login</h1>
+      <form key={formKey} onSubmit={handleSubmit(onSubmit)}>
+        <label htmlFor="name">Name: </label>
+        <input type="text" 
+        id="name" 
+        value={name} 
+        onChange={(e) => setName(e.target.value)}
+        required 
+        /><br/>
+        <label htmlFor="email">Email: </label>
+        <input type="email" 
+        id="email" 
+        value={email} 
+        onChange={(e) => setEmail(e.target.value)}
+        required 
+        /><br/>
+        {errors.root?.serverError && (
+          <p className="error">{errors.root.serverError.message}</p>
+        )}
+        <button type="submit">Login</button>
+      </form>
     </div>
-  );
-};
+  )
+}
 
 function App() {
-  // wait for DB and fetch users
-  const [isLoading, setIsLoading] = useState(true);
-  const [users, setData] = useState(null);
-  const [error, setError] = useState(null);
-  console.log(users)
+  const [isLoading, setIsLoading] = useState(true)
+  const [users, setUsers] = useState([])
+  const [error, setError] = useState(null)
   
   useEffect(() => {
     const apiURL = process.env.REACT_APP_API_URL
     const fetchData = async () => {
       try {
-        const response = await fetch(`${apiURL}/users`);
+        const response = await fetch(`${apiURL}/users`)
         if (!response.ok) {
-          throw new Error('Failed to fetch users data');
+          throw new Error('Failed to fetch users data')
         }
-        const result = await response.json();
-        setData(result);
+        const result = await response.json()
+        setUsers(result)
       } catch (error) {
-        setError(error.message);
+        setError(error.message)
       } finally {
-        setIsLoading(false);
+        setIsLoading(false)
       }
-    };
-    const timeoutId = setTimeout(fetchData, 2000);
-    return () => clearTimeout(timeoutId);
-  }, []);
+    }
+    fetchData()
+  }, [])
   
   if (isLoading) {
-    return <div className='spinner'>Loading.....</div>;
+    return <div className='spinner'>Loading.....</div>
   }
   if (error) {
-    return <div className='error'>Error: {error}</div>;
+    return <div className='error'>Error: {error}</div>
   }
   
   return (
@@ -250,4 +277,4 @@ function App() {
   )
 }
 
-export default App;
+export default App

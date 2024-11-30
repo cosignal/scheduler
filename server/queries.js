@@ -71,29 +71,28 @@ const getEvents = (request, response) => {
     })
 }
 
-const getEventByUserId = (request, response) => {
-  const id = parseInt(request.params.user_id)
-
-  db.query('SELECT * FROM events WHERE user_id = $1', [user_id], (error, results) => {
-    if (error) {
-      throw error
-    }
+const getEventsByUserId = async (request, response) => {
+  try {
+    const userId = parseInt(request.params.user_id)
+    const results = await db.query('SELECT * FROM events WHERE user_id = $1', [userId])
     response.status(200).json(results.rows)
-  })
+  } catch (error) {
+    console.error('Error fetching events:', error);
+    response.status(500).json({ error: 'Internal server error' });
+  }
 }
 
 const createEvent = async (request, response) => {
+  try {
     const { user_id, title, description, start_time, end_time, date } = request.body
-  
-    //Should "Events" be lowercase?
-    await db.query('INSERT INTO events (user_id, title, description, start_time, end_time, date) VALUES ($1, $2, $3, TO_TIMESTAMP($4,\'HH24:MI:SS\')::time without time zone, TO_TIMESTAMP($5,\'HH24:MI:SS\')::time without time zone, $6) RETURNING *',
-      [user_id, title, description, start_time, end_time, date],
-      (error, results) => {
-      if (error) {
-        throw error
-      }
-      response.status(201).send(`Event added with ID: ${results.rows[0].id}`)
-    })
+    const results = await db.query('INSERT INTO events (user_id, title, description, start_time, end_time, date) VALUES ($1, $2, $3, TO_TIMESTAMP($4,\'HH24:MI:SS\')::time without time zone, TO_TIMESTAMP($5,\'HH24:MI:SS\')::time without time zone, $6) RETURNING *',
+      [user_id, title, description, start_time, end_time, date]
+    )
+    response.status(201).json({ message: `Event added with ID: ${results.rows[0].id}` })
+    } catch (error) {
+      console.error('Error creating event:', error);
+      response.status(500).json({ error: 'Internal server error' });
+    }
   }
 
 const updateEvent = (request, response) => {
@@ -130,7 +129,7 @@ module.exports = {
   updateUser,
   deleteUser,
   getEvents,
-  getEventByUserId,
+  getEventsByUserId,
   createEvent,
   updateEvent,
   deleteEvent,

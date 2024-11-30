@@ -14,10 +14,11 @@ app.use(cors({
     allowedHeaders: ['Content-Type', 'Authorization']
 }))
 app.use(function(req, res, next) {
-    res.header("Access-Control-Allow-Origin", process.env.FRONTEND_URL);
-    res.header("Access-Control-Allow-Credentials", "true");
-    next();
+    res.header("Access-Control-Allow-Origin", process.env.FRONTEND_URL)
+    res.header("Access-Control-Allow-Credentials", "true")
+    next()
   })
+//app.options('/events/:user_id', cors()) // ?
 app.use(bodyParser.json())
 app.use(
     bodyParser.urlencoded({
@@ -35,9 +36,8 @@ app.post('/users', db.createUser)
 app.put('/users/:id', db.updateUser)
 app.delete('/users/:id', db.deleteUser)
 app.get('/events', db.getEvents)
-// TODO:
-/* app.get('/event/:id', db.getEventByID)
-app.get('/events/:id', db.getEventsByUserId) */
+/* app.get('/event/:id', db.getEventByID) */
+app.get('/events/:user_id', db.getEventsByUserId) 
 app.post('/events', db.createEvent)
 app.put('/events/:id', db.updateEvent)
 app.delete('/events/:id', db.deleteEvent)
