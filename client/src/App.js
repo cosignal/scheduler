@@ -2,14 +2,71 @@ import './App.css'
 import React, { useState, useEffect } from 'react'
 import Popup from 'reactjs-popup'
 import 'reactjs-popup/dist/index.css'
+import 'react-big-calendar/lib/css/react-big-calendar.css'
+import { Calendar, momentLocalizer } from 'react-big-calendar'
+import moment from 'moment'
 import { useForm } from 'react-hook-form'
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom'
 
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms))
+const localizer = momentLocalizer(moment)
 
-const Calendar = () => {
+const UserCalendar = ({events}) => {
+  // NOTE: Date object format: (YYYY, M, D, HH, MM, SS) where Seconds is optional
+  let calendarEvents = events.map(event => {
+
+    const date = event.date.slice(0,10)
+    const year = Number(date.slice(0,4))
+    const month = date.slice(5,7) - 1 // Month is zero-indexed
+    const day = Number(date.slice(8))
+    const start = event.start_time
+    const end = event.end_time
+    const startHour = Number(start.slice(0,2))
+    const startMinute = Number(start.slice(3,5))
+    const endHour = Number(end.slice(0,2))
+    const endMinute = Number(end.slice(3,5))
+
+    return {
+      id: event.id,
+      title: event.title,
+      desc: event.description,
+      start: new Date(year, month, day, startHour, startMinute),
+      end: new Date(year, month, day, endHour, endMinute)
+    }
+  })
+
+  return (
+    <div>
+      <div className="calendar">
+        <Calendar
+        localizer={localizer}
+        events={calendarEvents}
+        startAccessor="start"
+        endAccessor="end"
+        style={{ height: 500 }}
+        />
+      </div>
+      <div className="events">
+        <h2>Events</h2>
+        <ul>
+          {events.map(event => (
+            <li key={event.id}>
+              <h3>{event.title}</h3>
+              <p>Date: {event.date.slice(0, 10)}</p>
+              <p>Time: {event.start_time} - {event.end_time}</p>
+              <p>{event.description}</p>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  )
+}
+
+const Schedule = () => {
   const location = useLocation()
   const user_id = location.state?.user_id
+  const name = location.state?.name
   const [events, setEvents] = useState([])
   const [submissions, setSubmissions] = useState(0)
   const [title, setTitle] = useState('')
@@ -20,22 +77,22 @@ const Calendar = () => {
   const { handleSubmit, formState: { errors } } = useForm()
   const [error, setError] = useState(null)
   const apiURL = process.env.REACT_APP_API_URL
-
-const fetchData = async () => {
-  try {
-    const response = await fetch(`${apiURL}/events/${user_id}`,
-      {mode: 'cors'}
-    )
-    if (!response.ok) {
-      throw new Error('Failed to fetch user events data')
+  
+  const fetchData = async () => {
+    try {
+      const response = await fetch(`${apiURL}/events/${user_id}`,
+        {mode: 'cors'}
+      )
+      if (!response.ok) {
+        throw new Error('Failed to fetch user events data')
+      }
+      const result = await response.json()
+      setEvents(result)
+    } catch (error) {
+      setError(error.message)
     }
-    const result = await response.json()
-    setEvents(result)
-  } catch (error) {
-    setError(error.message)
   }
-}
-
+  
   const onSubmit = async (formData) => {
     try {
       const response = await fetch(`${apiURL}/events`, {
@@ -61,12 +118,16 @@ const fetchData = async () => {
     fetchData()
   }, [submissions])
   
+  let header
+  if (name[name.length - 1] == 's') {
+    header = `${name}' Schedule`
+  } else {
+    header = `${name}'s Schedule`
+  }
+  
   return (
-    <div className="calendar">
-    <h1>Your Calendar</h1>
-    <div>
-    <p>Calendar View Goes Here</p>
-    </div>
+    <div className="schedule">
+    <h1>{header}</h1>
     <div className="addEvent">
     <Popup trigger=
     {<button> Click to add event </button>}
@@ -120,23 +181,12 @@ const fetchData = async () => {
     /><br/>
     <button type='submit'>Add event</button>
     </form>
-    
     </div>
     </Popup>
     </div>
-    
     <div>
-    <h2>Events</h2>
-    <ul>
-    {events.map(event => (
-      <li key={event.id}>
-      <h3>{event.title}</h3>
-      <p>Date: {event.date.slice(0, 10)}</p>
-      <p>Time: {event.start_time} - {event.end_time}</p>
-      <p>{event.description}</p>
-      </li>
-    ))}
-    </ul>
+    <h2>Calendar</h2>
+    <UserCalendar events={events} />
     </div>
     
     </div>
@@ -163,7 +213,7 @@ const UserLogin = () => {
         // existing user
         newUser = false
         setID(user.id)
-        navigate('/calendar', { state: { user_id } })
+        navigate('/schedule', { state: { user_id } })
       } else if ((user.name === name) || (user.email === email)) {
         // wrong username OR email
         newUser = false
@@ -189,7 +239,7 @@ const UserLogin = () => {
         })
         const result = await response.json()
         setID(result.id)
-        navigate('/calendar', { state: { user_id } })      
+        navigate('/schedule', { state: { user_id } })      
       } catch (error) {
         console.error('Error', error)
       }
@@ -198,33 +248,33 @@ const UserLogin = () => {
   
   useEffect(() => {
     if (user_id) {
-      navigate('/calendar', { state: { user_id } })
+      navigate('/schedule', { state: { user_id, name } })
     }
   }, [user_id])
   
   return (
     <div className="login">
-      <h1>User Login</h1>
-      <form key={formKey} onSubmit={handleSubmit(onSubmit)}>
-        <label htmlFor="name">Name: </label>
-        <input type="text" 
-        id="name" 
-        value={name} 
-        onChange={(e) => setName(e.target.value)}
-        required 
-        /><br/>
-        <label htmlFor="email">Email: </label>
-        <input type="email" 
-        id="email" 
-        value={email} 
-        onChange={(e) => setEmail(e.target.value)}
-        required 
-        /><br/>
-        {errors.root?.serverError && (
-          <p className="error">{errors.root.serverError.message}</p>
-        )}
-        <button type="submit">Login</button>
-      </form>
+    <h1>User Login</h1>
+    <form key={formKey} onSubmit={handleSubmit(onSubmit)}>
+    <label htmlFor="name">Name: </label>
+    <input type="text" 
+    id="name" 
+    value={name} 
+    onChange={(e) => setName(e.target.value)}
+    required 
+    /><br/>
+    <label htmlFor="email">Email: </label>
+    <input type="email" 
+    id="email" 
+    value={email} 
+    onChange={(e) => setEmail(e.target.value)}
+    required 
+    /><br/>
+    {errors.root?.serverError && (
+      <p className="error">{errors.root.serverError.message}</p>
+    )}
+    <button type="submit">Login</button>
+    </form>
     </div>
   )
 }
@@ -267,7 +317,7 @@ function App() {
     <div>
     <Routes>
     <Route path="/login" element={<UserLogin/>} />
-    <Route path="/calendar" element={<Calendar/>} />
+    <Route path="/schedule" element={<Schedule/>} />
     <Route path="/" element={<Navigate to="/login" state={{ users }} replace />} />
     </Routes>
     </div>
