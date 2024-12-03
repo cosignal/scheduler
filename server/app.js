@@ -39,6 +39,8 @@ app.get('/events', db.getEvents)
 /* app.get('/event/:id', db.getEventByID) */
 app.get('/events/:user_id', db.getEventsByUserId) 
 app.post('/events', db.createEvent)
+app.get('/classes/:user_id', db.getClassesByUserId) 
+app.post('/classes', db.createClass)
 app.put('/events/:id', db.updateEvent)
 app.delete('/events/:id', db.deleteEvent)
 
