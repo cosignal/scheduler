@@ -5,6 +5,10 @@ const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
     port: 5432,
     max: 20,
+    ssl: {
+      rejectUnauthorized: false,  // This disables the certificate validation
+      // FIXME: for production, use proper SSL cert thru AWS
+  },
   });
 
 pool.on('error', (err, client) => {
