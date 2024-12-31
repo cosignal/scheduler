@@ -6,9 +6,9 @@ const pool = new Pool({
     port: 5432,
     max: 20,
     ssl: {
-      rejectUnauthorized: false,  // This disables the certificate validation
-      // FIXME: for production, use proper SSL cert thru AWS
-  },
+      ca: fs.readFileSync('./us-east-2-bundle.pem').toString(),
+      rejectUnauthorized: true,
+    },
   });
 
 pool.on('error', (err, client) => {
